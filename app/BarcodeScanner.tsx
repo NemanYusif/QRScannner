@@ -1,15 +1,28 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as Linking from "expo-linking";
-import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import { btoa } from "react-native-quick-base64";
 
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Animated,
+  Easing,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import "../global.css";
 
-export default function App() {
+export default function BarcodeScanner() {
   const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState("back");
+  const [facing, setFacing] = useState<CameraType>("back");
   const [scannedData, setScannedData] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -23,6 +36,7 @@ export default function App() {
 
   const isURL = (text: string) => /^https?:\/\//.test(text);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const URL = "https://facecardapi.azurewebsites.net/";
 
   useEffect(() => {
     Animated.loop(
@@ -43,17 +57,76 @@ export default function App() {
     ).start();
   }, []);
 
+  const handleLogout = async () => {
+    Alert.alert(
+      "Çıxmaq istəyirsinizmi?",
+      "Çıxış etmək istədiyinizə əmin olun.",
+      [
+        { text: "Xeyr", style: "cancel" },
+        {
+          text: "Bəli",
+          onPress: async () => {
+            await AsyncStorage.removeItem("token");
+            router.replace("/LoginScreen");
+          },
+        },
+      ]
+    );
+  };
+
+  const sendScannedData = async () => {
+    if (!scannedData) {
+      Alert.alert("Xəta", "QR məlumatı tapılmadı.");
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const base64 = btoa(scannedData);
+
+      console.log(base64);
+
+      const response = await axios.post(
+        `${URL}api/qrcodes/scanned?qrData=${base64}&branchId=1`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        }
+      );
+
+      const userData = response.data;
+
+      Alert.alert("Uğurla Göndərildi!");
+
+      setScannedData(null);
+    } catch (error: any) {
+      console.error(error);
+      if (error.response) {
+        Alert.alert(
+          "Xəta",
+          error.response.data?.message || "Məlumat göndərilmədi."
+        );
+      } else {
+        Alert.alert("Xəta", "Serverə qoşulmaq mümkün olmadı.");
+      }
+    }
+  };
+
   if (!permission)
     return (
-      <View className="flex-1 w-full justify-center items-center bg-black" />
+      <SafeAreaView className="flex-1 w-full justify-center items-center bg-black" />
     );
+
   if (!permission.granted) {
     return (
       <View className="flex-1 w-full justify-center items-center bg-black">
         <Text className="text-white mb-4 text-lg">Kameraya icazə lazımdır</Text>
         <TouchableOpacity
           onPress={requestPermission}
-          className="bg-blue-600 px-4 py-2 rounded-xl"
+          className="bg-green-600 px-4 py-2 rounded-xl"
         >
           <Text className="text-white">İcazə ver</Text>
         </TouchableOpacity>
@@ -65,13 +138,18 @@ export default function App() {
     return (
       <View className="flex-1 w-full justify-center items-center bg-black px-4">
         <Text className="text-white text-lg mb-6 text-center">
-          {isURL(scannedData) ? "URL Tapıldı  :" : "Məlumat Tapılmadı:"}
+          {scannedData?.trim()
+            ? isURL(scannedData)
+              ? "URL Tapıldı:"
+              : "Məlumat Tapıldı:"
+            : "Məlumat Tapılmadı"}
         </Text>
-        <Text className="text-white text-sm mb-4 text-center break-words bg-white">
+
+        <Text className="text-white text-sm mb-4 text-center break-words">
           {scannedData}
         </Text>
 
-        <View className="flex-row gap-2 ">
+        <View className="flex-row gap-2 flex-wrap justify-center">
           {isURL(scannedData) && (
             <TouchableOpacity
               onPress={() => Linking.openURL(scannedData)}
@@ -80,6 +158,13 @@ export default function App() {
               <Text className="text-white font-bold">Sayta get</Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            onPress={sendScannedData}
+            className="bg-blue-600 px-8 py-3 rounded-xl"
+          >
+            <Text className="text-white font-bold">Göndər</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setScannedData(null)}
@@ -124,14 +209,21 @@ export default function App() {
           }}
         />
       </View>
-      <View className="absolute bottom-5 left-0 right-0 items-center">
+
+      <View className="absolute top-5 right-3 flex-row gap-4">
+        <TouchableOpacity onPress={handleLogout}>
+          <MaterialIcons name="logout" size={35} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      <View className="absolute  bottom-5 left-0 right-0 items-center">
         <TouchableOpacity
           onPress={() =>
             setFacing((prev) => (prev === "back" ? "front" : "back"))
           }
           className="bg-blue-600 px-4 py-2 rounded-full"
         >
-          <Text className="text-white font-semibold ">
+          <Text className="text-white font-semibold">
             <MaterialIcons name="cameraswitch" size={45} color="white" />
           </Text>
         </TouchableOpacity>

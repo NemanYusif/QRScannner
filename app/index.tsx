@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import BarcodeScanner from "./BarcodeScanner";
+import LoginScreen from "./LoginScreen";
 
 export default function Index() {
   return (
@@ -10,7 +10,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <BarcodeScanner />
+      <LoginScreen />
     </View>
   );
 }

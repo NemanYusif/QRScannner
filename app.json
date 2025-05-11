@@ -1,27 +1,46 @@
 {
   "expo": {
-    "name": "qrscanner",
-    "slug": "qrscanner",
+    "name": "QRCodeScannerFS",
+    "slug": "QrCodeFaceStudio",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "qrscanner",
+    "icon": "./assets/images/logo.png",
+    "scheme": "QrCodeFaceStudio",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "y",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "build": {
+        "android": {
+          "release": {
+            "keystore": {
+              "keystorePath": "./path/to/my-release-key.jks",
+              "keystorePassword": "yusifov0500",
+              "keyAlias": "QRCodeScannerFS",
+              "keyPassword": "nemanyusifov0500"
+            }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.nemanyusif.QrCodeFaceStudio"
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
@@ -36,6 +55,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "00476bec-1624-4185-a647-16bdb7f2385c"
+      }
     }
   }
 }
