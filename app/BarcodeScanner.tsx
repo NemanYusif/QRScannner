@@ -4,24 +4,16 @@ import axios from "axios";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { btoa } from "react-native-quick-base64";
-
-import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Animated,
-  Easing,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../global.css";
-
 export default function BarcodeScanner() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [scannedData, setScannedData] = useState<string | null>(null);
+  const [tableNumber, setTableNumber] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -35,27 +27,7 @@ export default function BarcodeScanner() {
   };
 
   const isURL = (text: string) => /^https?:\/\//.test(text);
-  const scanLineAnim = useRef(new Animated.Value(0)).current;
   const URL = "https://facecardapi.azurewebsites.net/";
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scanLineAnim, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scanLineAnim, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
 
   const handleLogout = async () => {
     Alert.alert(
@@ -79,15 +51,22 @@ export default function BarcodeScanner() {
       Alert.alert("Xəta", "QR məlumatı tapılmadı.");
       return;
     }
+    if (!scannedData || !tableNumber) {
+      Alert.alert("Xəta", "QR məlumatı və masa nömrəsi daxil edilməlidir.");
+      return;
+    }
+    if (!tableNumber || isNaN(parseInt(tableNumber))) {
+      Alert.alert("Xəta", "Masa nömrəsi düzgün daxil edilməyib");
+      return;
+    }
 
     try {
       const token = await AsyncStorage.getItem("token");
       const base64 = btoa(scannedData);
-
-      console.log(base64);
+      const tableNo = parseInt(tableNumber, 10);
 
       const response = await axios.post(
-        `${URL}api/qrcodes/scanned?qrData=${base64}&branchId=1`,
+        `${URL}api/qrcodes/scanned?qrData=${base64}&tableNo=${tableNo}`,
         {},
         {
           headers: {
@@ -102,6 +81,7 @@ export default function BarcodeScanner() {
       Alert.alert("Uğurla Göndərildi!");
 
       setScannedData(null);
+      setTableNumber("");
     } catch (error: any) {
       console.error(error);
       if (error.response) {
@@ -136,41 +116,63 @@ export default function BarcodeScanner() {
 
   if (scannedData) {
     return (
-      <View className="flex-1 w-full justify-center items-center bg-black px-4">
-        <Text className="text-white text-lg mb-6 text-center">
+      <View className="flex-1 w-full justify-center items-center bg-black px-6 py-12">
+        {/* Başlıq */}
+        <Text className="text-white text-2xl font-bold mb-6 text-center leading-snug">
           {scannedData?.trim()
             ? isURL(scannedData)
-              ? "URL Tapıldı:"
-              : "Məlumat Tapıldı:"
-            : "Məlumat Tapılmadı"}
+              ? "🔗 URL Tapıldı:"
+              : "✅ Məlumat Tapıldı:"
+            : "⚠️ Məlumat Tapılmadı"}
         </Text>
 
-        <Text className="text-white text-sm mb-4 text-center break-words">
-          {scannedData}
+        <View className="bg-white/10 border border-white/20 rounded-2xl px-4 py-5 mb-8 w-full max-h-[150px]">
+          <Text className="text-white text-center text-base leading-relaxed break-words">
+            {scannedData || "Heç bir məlumat göstərilmir."}
+          </Text>
+        </View>
+
+        <Text className="text-white text-lg font-semibold mb-2">
+          Masa nömrəsini daxil edin:
         </Text>
 
-        <View className="flex-row gap-2 flex-wrap justify-center">
+        <TextInput
+          className="bg-white w-full rounded-xl px-5 py-4 mb-6 text-black text-center text-lg shadow-md"
+          value={tableNumber}
+          onChangeText={setTableNumber}
+          keyboardType="numeric"
+          placeholder="Məsələn: 3"
+          placeholderTextColor="#999"
+        />
+
+        <View className="flex-row flex-wrap justify-center gap-4">
           {isURL(scannedData) && (
             <TouchableOpacity
               onPress={() => Linking.openURL(scannedData)}
-              className="bg-green-600 px-8 py-3 rounded-xl"
+              className="bg-green-600 px-6 py-3 rounded-xl shadow-lg"
             >
-              <Text className="text-white font-bold">Sayta get</Text>
+              <Text className="text-white font-semibold text-base">
+                🌐 Sayta Get
+              </Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             onPress={sendScannedData}
-            className="bg-blue-600 px-8 py-3 rounded-xl"
+            className="bg-blue-600 px-8  py-3 rounded-xl shadow-lg"
           >
-            <Text className="text-white font-bold">Göndər</Text>
+            <Text className="text-white font-semibold text-base">
+              📤 Göndər
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setScannedData(null)}
-            className="bg-gray-600 px-8 py-3 rounded-xl"
+            className="bg-gray-700 px-6 py-3 rounded-xl shadow-lg"
           >
-            <Text className="text-white font-bold">Geri qayıt</Text>
+            <Text className="text-white font-semibold text-base">
+              ↩️ Geri Qayıt
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -190,24 +192,6 @@ export default function BarcodeScanner() {
         <View className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-600 rounded-md" />
         <View className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-600 rounded-md" />
         <View className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-600 rounded-md" />
-
-        <Animated.View
-          style={{
-            position: "absolute",
-            top: 0,
-            width: "100%",
-            height: 2,
-            backgroundColor: "white",
-            transform: [
-              {
-                translateY: scanLineAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 273],
-                }),
-              },
-            ],
-          }}
-        />
       </View>
 
       <View className="absolute top-5 right-3 flex-row gap-4">

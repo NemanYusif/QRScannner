@@ -4,8 +4,8 @@
     "slug": "QrCodeFaceStudio",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
-    "scheme": "QrCodeFaceStudio",
+    "icon": "./assets/images/QRLoqo.png",
+    "scheme": ["qrscanner", "myapp"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,18 +13,6 @@
       "bundleIdentifier": "y",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "build": {
-        "android": {
-          "release": {
-            "keystore": {
-              "keystorePath": "./path/to/my-release-key.jks",
-              "keystorePassword": "yusifov0500",
-              "keyAlias": "QRCodeScannerFS",
-              "keyPassword": "nemanyusifov0500"
-            }
-          }
-        }
       }
     },
     "android": {
@@ -47,9 +35,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
-          "recordAudioAndroid": true
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
         }
       ]
     ],

@@ -31,7 +31,18 @@ allprojects {
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
   }
+}project.ext.react = [
+  enableHermes: true, 
+]
+splits {
+  abi {
+    enable true
+    reset()
+    include "armeabi-v7a", "arm64-v8a"
+    universalApk false
+  }
 }
+
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"

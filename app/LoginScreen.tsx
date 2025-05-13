@@ -1,12 +1,21 @@
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function LoginScreen() {
-  const [login, setName] = useState("");
-  const [password, setPassword] = useState("");
+  const [UserName, setName] = useState("");
+  const [Password, setPassword] = useState("");
+  const [secure, setSecure] = useState(true);
   const router = useRouter();
 
   const baseURL = "https://facecardapi.azurewebsites.net/";
@@ -22,46 +31,70 @@ export default function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
-    if (!login || !password) {
+    if (!UserName || !Password) {
       Alert.alert("Xəta", "Zəhmət olmasa bütün sahələri doldurun");
       return;
     }
 
     try {
       const response = await axios.post(`${baseURL}api/employees/login`, {
-        login,
-        password,
+        UserName,
+        Password,
       });
 
-      await AsyncStorage.setItem("token", JSON.stringify(response.data));
+      const token = response.data?.data?.accessToken;
 
-      Alert.alert("Uğur!", `Xoş gəldiniz, ${login}`);
+      if (!token) {
+        Alert.alert("Xəta", "Token serverdən gəlmədi.");
+        return;
+      }
+
+      await AsyncStorage.setItem("token", token);
+
+      const THIRTY_DAYS_MS = 20 * 60 * 1000;
+
+      setTimeout(async () => {
+        await AsyncStorage.removeItem("token");
+        router.replace("/LoginScreen");
+        Alert.alert("Sessiya müddəti bitdi", "Yenidən Giriş edin.");
+      }, THIRTY_DAYS_MS);
+
+      Alert.alert("Uğur!", `Xoş gəldiniz, ${UserName}`);
       router.replace("/BarcodeScanner");
     } catch (error) {
       Alert.alert("Xəta", "Giriş zamanı problem baş verdi");
-      console.error(error);
     }
   };
 
   return (
     <View className="flex-1 w-full gap-3 justify-center items-center bg-black px-4">
-      <Text className="text-white text-2xl font-bold mb-6">Daxil ol</Text>
+      <Image
+        className="w-[30%] h-[15%]"
+        source={require("../assets/images/QRLoqo.png")}
+      />
+      <Text className="text-white text-3xl font-bold mb-6">Daxil ol</Text>
 
       <TextInput
-        className="bg-white w-full rounded-lg px-4 py-6"
+        className="bg-white w-full text-[#000] rounded-lg px-4 py-6"
         placeholder="Istifadəçi adı"
-        value={login}
+        value={UserName}
         onChangeText={setName}
         autoCapitalize="none"
       />
 
-      <TextInput
-        className="bg-white w-full rounded-lg px-4 py-6 mb-6"
-        placeholder="Şifrə"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      {/* Şifrə sahəsi + ikon */}
+      <View className="w-full bg-white rounded-lg px-4 flex-row items-center mb-6">
+        <TextInput
+          className="flex-1 py-6 text-[#000]"
+          placeholder="Şifrə"
+          value={Password}
+          onChangeText={setPassword}
+          secureTextEntry={secure}
+        />
+        <TouchableOpacity onPress={() => setSecure(!secure)}>
+          <Ionicons name={secure ? "eye-off" : "eye"} size={24} color="#888" />
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity
         onPress={handleLogin}
